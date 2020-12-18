@@ -1,5 +1,6 @@
+from os import name
 import random
-from sanic import Sanic, response
+from sanic import Sanic
 from sanic_session import Session, InMemorySessionInterface
 import socketio
 from diagnosis import Diagnosis
@@ -7,7 +8,7 @@ import json
 from sentiment import asyncAnalyze
 import copy
 import collections
-import itertools
+from nearest import getNearest
 
 app = Sanic(__name__)
 session = Session(app, interface=InMemorySessionInterface())
@@ -23,6 +24,11 @@ with open("./badwords.json", "r", encoding="utf-8") as fp:
 @app.middleware("response")
 async def allowCors(_, response):
     response.headers["Access-Control-Allow-Origin"] = "*"
+
+
+@app.post("/api/nearest")
+async def nearestAPI(request):
+    return getNearest(**request.json)
 
 
 def getQuestion(session):
@@ -66,7 +72,8 @@ async def connect(sid, _):
 
 마음의 숲은 문맥속에 담긴 감정으로 우울증을 진단하는 서비스입니다.
 
-정확한 분석을 위해서 예/아니오와 같은 단답보다는 글로 답변해주세요."""
+정확한 분석을 위해서 예/아니오와 같은 단답보다는 글로 답변해주세요.""",
+            "waitForNext": False,
         },
         to=sid,
         namespace="/chatBot",
@@ -144,11 +151,65 @@ async def clientMessage(sid, data):
             Score += Value
 
         return await sio.emit(
-            "botMessage",
-            {"content": f"{Score}/{TotalScore}점 입니다.", "waitForNext": False},
+            "returnResult",
+            {"score": Score, "totalScore": TotalScore},
             to=sid,
             namespace="/chatBot",
         )
+
+
+@sio.on("setRoom", namespace="/chat")
+async def setRoom(sid, data):
+    async with sio.session(sid) as session:
+        session["roomId"] = data["roomId"]
+
+        sio.enter_room(sid, session["roomId"], namespace="/chat")
+
+        await sio.emit(
+            "userJoined", room=session["roomId"], skip_sid=sid, namespace="/chat"
+        )
+
+
+@sio.on("sendMessage", namespace="/chat")
+async def sendMessage(sid, data):
+    async with sio.session(sid) as session:
+        roomId = session.get("roomId")
+
+        if not roomId or any(
+            filter(lambda x: x in data["content"].lower(), badwordsFilter)
+        ):
+            return await sio.emit(
+                "messageDenied",
+                {"content": data["content"]},
+                to=sid,
+                namespace="/chat",
+            )
+
+        await sio.emit(
+            "messageAccepted",
+            {"content": data["content"], "isDelivered": True},
+            to=sid,
+            namespace="/chat",
+        )
+
+        await sio.emit(
+            "userMessage",
+            {"content": data["content"]},
+            room=roomId,
+            skip_sid=sid,
+            namespace="/chat",
+        )
+
+
+@sio.on("disconnect", namespace="/chat")
+async def disconnectRoom(sid, data):
+    async with sio.session(sid) as session:
+        roomId = session.get("roomId")
+
+        if not roomId:
+            return
+
+        await sio.emit("userLeft", room=roomId, skip_sid=sid, namespace="/chat")
 
 
 if __name__ == "__main__":
