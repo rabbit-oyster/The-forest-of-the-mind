@@ -1,6 +1,8 @@
-from os import name
+import asyncio
+from typing import Match
+from sanic.exceptions import abort
 import random
-from sanic import Sanic
+from sanic import Sanic, response
 from sanic_session import Session, InMemorySessionInterface
 import socketio
 from diagnosis import Diagnosis
@@ -9,6 +11,7 @@ from sentiment import asyncAnalyze
 import copy
 import collections
 from nearest import getNearest
+import secrets
 
 app = Sanic(__name__)
 session = Session(app, interface=InMemorySessionInterface())
@@ -157,6 +160,37 @@ async def clientMessage(sid, data):
             namespace="/chatBot",
         )
 
+Meetings = []
+
+@app.post("/1")
+async def _(request):
+    Score, TotalScore = request.json["Score"], request.json["TotalScore"]
+
+    Percentage = round(Score / TotalScore * 100)
+
+    if Meetings:
+        if Percentage > 60:
+            abort(403, message="Score is too high.")
+        
+        Matched = sorted(Meetings, keys=lambda x: abs(x[0] - Percentage), reverse=True).pop()
+
+        roomId = secrets.token_hex()
+
+        Matched[1].put_nowait(roomId)
+        return response.text(roomId)
+
+    event = asyncio.Queue(maxsize=1)
+
+    Meetings.append([Percentage, event])
+
+    try:
+        roomId = asyncio.wait_for(event.get(), timeout=request.json.get("timeout", 30))
+    except asyncio.TimeoutError:
+        abort(408, message="Matching Timed out.")
+    finally:
+        Meetings.remove([Percentage, event])
+    
+    return response.text(roomId)
 
 @sio.on("setRoom", namespace="/chat")
 async def setRoom(sid, data):
