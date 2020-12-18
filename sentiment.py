@@ -98,5 +98,6 @@ def analyze(Text: str):
         for key, value in concattedData.items()
     }
 
-async def asyncAnalyze(Text: str, loop = asyncio.get_event_loop()) -> Dict[str, float]:
+
+async def asyncAnalyze(Text: str, loop=asyncio.get_event_loop()) -> Dict[str, float]:
     return await loop.run_in_executor(None, analyze, Text)
