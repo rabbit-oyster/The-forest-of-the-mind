@@ -1,9 +1,9 @@
+import asyncio
 import collections
 import os
-import time
-from typing import Any, List
+from typing import Any, Dict, List
 
-import pandas
+import pandas as pd
 from konlpy.tag import Kkma
 
 
@@ -31,20 +31,10 @@ def loadLexicon(path: os.PathLike) -> DataSet:
 
 class Lexicon:
     Polarity = loadLexicon("./lexicon/polarity.csv")
-    Intensity = loadLexicon("./lexicon/intensity.csv")
-    Expressive_Type = loadLexicon("./lexicon/expressive-type.csv")
 
 
 class LexiconKeys:
     Polarity = ["COMP", "NEG", "NEUT", "None", "POS"]
-    Intensity = ["High", "Low", "Medium", "None"]
-    Expressive_Type = [
-        "dir-action",
-        "dir-explicit",
-        "dir-speech",
-        "indirect",
-        "writing-device",
-    ]
 
 
 kkma = Kkma()
@@ -62,9 +52,7 @@ def calc(source, ret, func) -> None:
 
 
 def analyze(Text: str):
-    a = time.perf_counter()
     Sentences = kkma.sentences(Text)
-    print(time.perf_counter() - a)
 
     analyzedData = collections.defaultdict(list)
 
@@ -109,3 +97,6 @@ def analyze(Text: str):
         key: value / totalValue * 100 if totalValue != 0 else 0.0
         for key, value in concattedData.items()
     }
+
+async def asyncAnalyze(Text: str, loop = asyncio.new_event_loop()) -> Dict[str, float]:
+    return await loop.run_in_executor(None, analyze, Text)
