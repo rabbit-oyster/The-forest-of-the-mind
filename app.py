@@ -128,19 +128,7 @@ async def clientMessage(sid, data):
 
         for Result in session["Results"]["Positive"]:
             Operators = {
-                "POS": lambda x: x,
-                "NEUT": lambda _: 2,
-                "NEG": lambda x: 4 - x,
-            }
-
-            Type, Value = max(Result.items(), key=lambda x: x[1])
-            Value = Operators[Type](round(Value / 25))
-
-            Score += Value
-
-        for Result in session["Results"]["Negative"]:
-            Operators = {
-                "POS": lambda x: 4 - x,
+                "POS": lambda x: 4 -x,
                 "NEUT": lambda _: 2,
                 "NEG": lambda x: x,
             }
@@ -150,6 +138,18 @@ async def clientMessage(sid, data):
 
             Score += Value
 
+        for Result in session["Results"]["Negative"]:
+            Operators = {
+                "POS": lambda x: x,
+                "NEUT": lambda _: 2,
+                "NEG": lambda x: 4-x,
+            }
+
+            Type, Value = max(Result.items(), key=lambda x: x[1])
+            Value = Operators[Type](round(Value / 25))
+
+            Score += Value
+            
         return await sio.emit(
             "returnResult",
             {"score": Score, "totalScore": TotalScore},
