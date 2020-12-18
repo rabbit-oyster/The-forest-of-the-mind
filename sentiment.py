@@ -3,7 +3,7 @@ import collections
 import os
 from typing import Any, Dict, List
 
-import pandas as pd
+import pandas
 from konlpy.tag import Kkma
 
 
