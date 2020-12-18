@@ -149,7 +149,7 @@ async def clientMessage(sid, data):
             Value = Operators[Type](round(Value / 25))
 
             Score += Value
-            
+
         return await sio.emit(
             "returnResult",
             {"score": Score, "totalScore": TotalScore},
@@ -160,7 +160,7 @@ async def clientMessage(sid, data):
 
 @sio.on("setRoom", namespace="/chat")
 async def setRoom(sid, data):
-    async with sio.session(sid) as session:
+    async with sio.session(sid, namespace="/chat") as session:
         session["roomId"] = data["roomId"]
 
         sio.enter_room(sid, session["roomId"], namespace="/chat")
@@ -172,7 +172,7 @@ async def setRoom(sid, data):
 
 @sio.on("sendMessage", namespace="/chat")
 async def sendMessage(sid, data):
-    async with sio.session(sid) as session:
+    async with sio.session(sid, namespace="/chat") as session:
         roomId = session.get("roomId")
 
         if not roomId or any(
@@ -202,8 +202,8 @@ async def sendMessage(sid, data):
 
 
 @sio.on("disconnect", namespace="/chat")
-async def disconnectRoom(sid, data):
-    async with sio.session(sid) as session:
+async def disconnectRoom(sid):
+    async with sio.session(sid, namespace="/chat") as session:
         roomId = session.get("roomId")
 
         if not roomId:
