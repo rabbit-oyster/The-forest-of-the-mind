@@ -1,5 +1,4 @@
 pandas
 konlpy
 sanic
-sanic_session
 python-socketio
