@@ -164,7 +164,7 @@ Meetings = []
 
 @app.post("/1")
 async def _(request):
-    Score, TotalScore = request.json["Score"], request.json["TotalScore"]
+    Score, TotalScore = request.form["Score"], request.form["TotalScore"]
 
     Percentage = round(Score / TotalScore * 100)
 
@@ -184,7 +184,7 @@ async def _(request):
     Meetings.append([Percentage, event])
 
     try:
-        roomId = asyncio.wait_for(event.get(), timeout=request.json.get("timeout", 30))
+        roomId = asyncio.wait_for(event.get(), timeout=request.form.get("timeout", 30))
     except asyncio.TimeoutError:
         abort(408, message="Matching Timed out.")
     finally:
