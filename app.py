@@ -191,7 +191,7 @@ async def _(request):
     Percentage = round(Score / TotalScore * 100)
 
     if Meetings:
-        if Percentage > 60:
+        if Percentage >= 70:
             abort(403, message="Score is too high.")
 
         Matched = sorted(
