@@ -1,20 +1,19 @@
 import asyncio
-from typing import Match
-from sanic.exceptions import abort
-import random
-from sanic import Sanic, response
-from sanic_session import Session, InMemorySessionInterface
-import socketio
-from diagnosis import Diagnosis
-import json
-from sentiment import asyncAnalyze
-import copy
 import collections
-from nearest import getNearest
+import copy
+import json
+import random
 import secrets
 
+import socketio
+from sanic import Sanic, response
+from sanic.exceptions import abort
+
+from diagnosis import Diagnosis
+from nearest import getNearest
+from sentiment import asyncAnalyze
+
 app = Sanic(__name__)
-session = Session(app, interface=InMemorySessionInterface())
 sio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[])
 sio.attach(app)
 
@@ -27,7 +26,9 @@ with open("./badwords.json", "r", encoding="utf-8") as fp:
 @app.middleware("response")
 async def allowCors(_, response):
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers['Access-Control-Allow-Methods'] =[ 'GET, POST, OPTIONS, PUT, PATCH, DELETE']
+    response.headers["Access-Control-Allow-Methods"] = [
+        "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+    ]
 
 
 @app.post("/api/nearest")
@@ -132,7 +133,7 @@ async def clientMessage(sid, data):
 
         for Result in session["Results"]["Positive"]:
             Operators = {
-                "POS": lambda x: 4 -x,
+                "POS": lambda x: 4 - x,
                 "NEUT": lambda _: 2,
                 "NEG": lambda x: x,
             }
@@ -146,7 +147,7 @@ async def clientMessage(sid, data):
             Operators = {
                 "POS": lambda x: x,
                 "NEUT": lambda _: 2,
-                "NEG": lambda x: 4-x,
+                "NEG": lambda x: 4 - x,
             }
 
             Type, Value = max(Result.items(), key=lambda x: x[1])
@@ -161,24 +162,31 @@ async def clientMessage(sid, data):
             namespace="/chatBot",
         )
 
+
 Meetings = []
+
 
 @app.options("/1")
 async def __(request):
     return response.empty()
 
+
 @app.post("/1")
 async def _(request):
     print(request.form)
-    Score, TotalScore = float(request.form["Score"].pop()), float(request.form["TotalScore"].pop())
+    Score, TotalScore = float(request.form["Score"].pop()), float(
+        request.form["TotalScore"].pop()
+    )
 
     Percentage = round(Score / TotalScore * 100)
 
     if Meetings:
         if Percentage > 60:
             abort(403, message="Score is too high.")
-        
-        Matched = sorted(Meetings, keys=lambda x: abs(x[0] - Percentage), reverse=True).pop()
+
+        Matched = sorted(
+            Meetings, keys=lambda x: abs(x[0] - Percentage), reverse=True
+        ).pop()
 
         roomId = secrets.token_hex()
 
@@ -190,13 +198,16 @@ async def _(request):
     Meetings.append([Percentage, event])
 
     try:
-        roomId = await asyncio.wait_for(event.get(), timeout=float(request.form.get("timeout", ["30.0"])))
+        roomId = await asyncio.wait_for(
+            event.get(), timeout=float(request.form.get("timeout", ["30.0"]))
+        )
     except asyncio.TimeoutError:
         abort(408, message="Matching Timed out.")
     finally:
         Meetings.remove([Percentage, event])
-    
+
     return response.text(roomId)
+
 
 @sio.on("setRoom", namespace="/chat")
 async def setRoom(sid, data):
@@ -253,4 +264,4 @@ async def disconnectRoom(sid):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True, auto_reload=True)
+    app.run(host="0.0.0.0", port=5000, debug=True, auto_reload=True)

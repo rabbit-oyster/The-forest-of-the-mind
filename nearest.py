@@ -1,6 +1,7 @@
-from typing import Any, Dict, Tuple
-import pandas
 import math
+from typing import Any, Dict, Tuple
+
+import pandas
 
 OpenDataSet = {
     "전국건강증진센터표준데이터": pandas.read_csv("./opendata/전국건강증진센터표준데이터.csv"),
