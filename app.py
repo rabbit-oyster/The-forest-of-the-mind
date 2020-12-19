@@ -31,9 +31,19 @@ async def allowCors(_, response):
     ]
 
 
-@app.post("/api/nearest")
+@app.options("/nearest")
+async def __(request):
+    return response.empty()
+
+
+@app.post("/nearest")
 async def nearestAPI(request):
-    return getNearest(**request.json)
+    return response.json(
+        getNearest(
+            tuple(map(float, request.form["Pos"].pop().split(","))),
+            request.form["type"].pop(),
+        )
+    )
 
 
 def getQuestion(session):

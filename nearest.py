@@ -1,11 +1,16 @@
 import math
+import numpy
 from typing import Any, Dict, Tuple
 
 import pandas
 
 OpenDataSet = {
-    "전국건강증진센터표준데이터": pandas.read_csv("./opendata/전국건강증진센터표준데이터.csv"),
-    "정신건강관련전체기관정보": pandas.read_csv("./opendata/정신건강관련전체기관정보_2019..csv"),
+    "전국건강증진센터표준데이터": pandas.read_csv("./opendata/전국건강증진센터표준데이터.csv").replace(
+        {numpy.nan: None}
+    ),
+    "정신건강관련전체기관정보": pandas.read_csv("./opendata/정신건강관련전체기관정보_2019..csv").replace(
+        {numpy.nan: None}
+    ),
 }
 
 
