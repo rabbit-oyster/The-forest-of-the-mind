@@ -27,6 +27,7 @@ with open("./badwords.json", "r", encoding="utf-8") as fp:
 @app.middleware("response")
 async def allowCors(_, response):
     response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers['Access-Control-Allow-Methods'] =[ 'GET, POST, OPTIONS, PUT, PATCH, DELETE']
 
 
 @app.post("/api/nearest")
@@ -162,9 +163,14 @@ async def clientMessage(sid, data):
 
 Meetings = []
 
+@app.options("/1")
+async def __(request):
+    return response.empty()
+
 @app.post("/1")
 async def _(request):
-    Score, TotalScore = request.form["Score"], request.form["TotalScore"]
+    print(request.form)
+    Score, TotalScore = float(request.form["Score"].pop()), float(request.form["TotalScore"].pop())
 
     Percentage = round(Score / TotalScore * 100)
 
@@ -184,7 +190,7 @@ async def _(request):
     Meetings.append([Percentage, event])
 
     try:
-        roomId = asyncio.wait_for(event.get(), timeout=request.form.get("timeout", 30))
+        roomId = await asyncio.wait_for(event.get(), timeout=float(request.form.get("timeout", ["30.0"])))
     except asyncio.TimeoutError:
         abort(408, message="Matching Timed out.")
     finally:
